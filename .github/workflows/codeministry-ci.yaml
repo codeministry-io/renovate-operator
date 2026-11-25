@@ -1,0 +1,98 @@
+# Fork-only CI for codeministry/renovate-operator.
+#
+# Upstream's go-test, ui-test, release and issue-triage workflows run on mogenius'
+# self-hosted runners, which a fork does not have; release and build-main-image
+# publish to registries this fork must not touch. They are disabled in the fork's
+# Actions settings. This file runs the same checks on GitHub-hosted runners and
+# carries a name upstream never uses, so merging upstream/main never conflicts.
+name: codeministry CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  go:
+    if: github.repository == 'codeministry/renovate-operator'
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Go
+        uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
+        with:
+          go-version-file: src/go.mod
+          cache-dependency-path: src/go.sum
+
+      - name: build
+        run: |
+          cd src
+          go mod download
+          go build -tags timetzdata ./...
+
+      - name: test
+        run: |
+          cd src
+          go test ./... -count=1
+
+  lint:
+    if: github.repository == 'codeministry/renovate-operator'
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Go
+        uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
+        with:
+          go-version-file: src/go.mod
+          cache-dependency-path: src/go.sum
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
+        with:
+          version: latest
+          args: --timeout=10m --config=.golangci.yml
+          working-directory: src
+
+  ui:
+    if: github.repository == 'codeministry/renovate-operator'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    # Same image as upstream's ui-test.yaml; keep the tag in lockstep with
+    # @playwright/test in tests/ui/package.json.
+    container:
+      image: mcr.microsoft.com/playwright:v1.65.1-noble@sha256:1507cbfc550a63a6b7396791ca4f00df17beb56342d2447b3f106c306f525579
+      options: --shm-size=1g
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up just
+        uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4
+
+      - name: Run the browser tests
+        run: just test-ui
+
+      - name: Upload the Playwright report
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-report
+          path: |
+            tests/ui/playwright-report/
+            tests/ui/test-results/
+          retention-days: 7
