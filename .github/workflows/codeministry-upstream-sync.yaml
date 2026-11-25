@@ -1,0 +1,69 @@
+# Keeps the fork's main in step with mogenius/renovate-operator main.
+#
+# Never use GitHub's "Sync fork" button for this fork: it hides what was merged and
+# when. This workflow merges upstream/main into main with a merge commit (no rebase,
+# no force push, so fork commits and the image built from them keep their history),
+# and on a conflict it pushes nothing and fails.
+#
+# Token: a GITHUB_TOKEN may not push changes under .github/workflows/, and upstream
+# changes its workflows regularly (Renovate pins). Set the secret UPSTREAM_SYNC_TOKEN
+# (fine-grained PAT for this repo only: Contents and Workflows read/write) to sync
+# those too; without it the run fails exactly when upstream touched a workflow.
+name: codeministry upstream sync
+
+on:
+  schedule:
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: upstream-sync
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  sync:
+    if: github.repository == 'codeministry/renovate-operator'
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.UPSTREAM_SYNC_TOKEN || github.token }}
+
+      - name: Merge upstream main
+        id: merge
+        run: |
+          git config user.name "codeministry upstream sync"
+          git config user.email "upstream-sync@users.noreply.github.com"
+          git fetch --no-tags https://github.com/mogenius/renovate-operator.git main
+          UPSTREAM=$(git rev-parse FETCH_HEAD)
+          if git merge-base --is-ancestor "$UPSTREAM" HEAD; then
+            echo "main already contains upstream ${UPSTREAM:0:7}."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if ! git merge --no-ff --no-edit -m "chore(sync): merge upstream main ${UPSTREAM:0:7}" "$UPSTREAM"; then
+            echo "::error::Merge conflict with upstream ${UPSTREAM:0:7}; nothing pushed. Resolve locally:"
+            git diff --name-only --diff-filter=U | sed 's/^/  /'
+            git merge --abort
+            exit 1
+          fi
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          echo "upstream=${UPSTREAM:0:7}" >> "$GITHUB_OUTPUT"
+
+      - name: Push
+        if: steps.merge.outputs.changed == 'true'
+        run: git push origin HEAD:main
+
+      # A push made with GITHUB_TOKEN starts no workflow; a dispatch does.
+      - name: Run CI on the merged main
+        if: steps.merge.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run codeministry-ci.yaml --ref main
