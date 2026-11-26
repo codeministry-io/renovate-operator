@@ -1,0 +1,111 @@
+# codeministry fork only: publishes the operator image and its chart after
+# codeministry CI went green on main. Upstream's release.yaml and
+# build-main-image.yaml are disabled in this fork (self-hosted runners, and
+# release.yaml would push into mogenius' chart repo).
+#
+# Image: ghcr.io/codeministry/renovate-operator:<appVersion>-cm.<run>
+#   arm64 only, built natively, ONE plain image manifest (no index, no
+#   provenance): Trivy scans single-platform images only when they are not
+#   wrapped in an index, and every node of the cluster is arm64.
+# Chart: oci://ghcr.io/codeministry/charts/renovate-operator, same version,
+#   image.repository pointed at the fork image at package time only, so the
+#   chart sources stay identical to upstream and merge without conflicts.
+#
+# The -cm.<run> suffix keeps fork versions apart from upstream's
+# release-please tags; <appVersion> follows upstream through the daily sync.
+name: codeministry release
+
+on:
+  workflow_run:
+    workflows: ["codeministry CI"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codeministry-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: >-
+      github.repository == 'codeministry/renovate-operator' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'))
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    env:
+      IMAGE: ghcr.io/codeministry/renovate-operator
+      CHART_REPO: oci://ghcr.io/codeministry/charts
+    steps:
+      - name: Checkout the commit CI tested
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Version
+        id: version
+        run: |
+          app=$(sed -n 's/^appVersion: *//p' charts/renovate-operator/Chart.yaml | tr -d '"')
+          [ -n "$app" ] || { echo "::error::no appVersion in Chart.yaml"; exit 1; }
+          echo "version=${app}-cm.${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GHCR
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push the image (arm64, single manifest)
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          docker buildx build \
+            --platform linux/arm64 \
+            --provenance=false --sbom=false \
+            --build-arg VERSION="$VERSION" \
+            --label org.opencontainers.image.source=https://github.com/codeministry/renovate-operator \
+            --label org.opencontainers.image.revision="$(git rev-parse HEAD)" \
+            --label org.opencontainers.image.version="$VERSION" \
+            --tag "$IMAGE:$VERSION" \
+            --push .
+
+      - name: Check the manifest form
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          media=$(docker buildx imagetools inspect --raw "$IMAGE:$VERSION" | jq -r .mediaType)
+          echo "mediaType: $media"
+          case "$media" in
+            *manifest.v1+json|*manifest.v2+json) ;;
+            *) echo "::error::expected a single image manifest, got $media"; exit 1 ;;
+          esac
+          digest=$(docker buildx imagetools inspect "$IMAGE:$VERSION" --format '{{json .Manifest.Digest}}' | tr -d '"')
+          echo "### Image" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`$IMAGE:$VERSION@$digest\`" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Set up Helm
+        uses: azure/setup-helm@2f5e7bc67f1f9972ab16657bb795f36d8f04de0e # v5.1.0
+
+      - name: Package and push the chart
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          sed -i 's#^  repository: mogenius/renovate-operator$#  repository: codeministry/renovate-operator#' charts/renovate-operator/values.yaml
+          grep -q '^  repository: codeministry/renovate-operator$' charts/renovate-operator/values.yaml \
+            || { echo "::error::image.repository not rewritten"; exit 1; }
+          helm repo add valkey https://valkey.io/valkey-helm/ >/dev/null
+          helm dependency build charts/renovate-operator
+          helm package charts/renovate-operator -d /tmp --version "$VERSION" --app-version "$VERSION"
+          out=$(helm push "/tmp/renovate-operator-${VERSION}.tgz" "$CHART_REPO" 2>&1)
+          echo "$out"
+          digest=$(echo "$out" | sed -n 's/^Digest: //p')
+          echo "### Chart" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`$CHART_REPO/renovate-operator:$VERSION@$digest\`" >> "$GITHUB_STEP_SUMMARY"
