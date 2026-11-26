@@ -1,4 +1,4 @@
-# Fork-only CI for codeministry/renovate-operator.
+# Fork-only CI for codeministry-io/renovate-operator.
 #
 # Upstream's go-test, ui-test, release and issue-triage workflows run on mogenius'
 # self-hosted runners, which a fork does not have; release and build-main-image
@@ -25,7 +25,7 @@ permissions:
 
 jobs:
   go:
-    if: github.repository == 'codeministry/renovate-operator'
+    if: github.repository == 'codeministry-io/renovate-operator'
     runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout code
@@ -49,7 +49,7 @@ jobs:
           go test ./... -count=1
 
   lint:
-    if: github.repository == 'codeministry/renovate-operator'
+    if: github.repository == 'codeministry-io/renovate-operator'
     runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout code
@@ -69,7 +69,7 @@ jobs:
           working-directory: src
 
   ui:
-    if: github.repository == 'codeministry/renovate-operator'
+    if: github.repository == 'codeministry-io/renovate-operator'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     # Same image as upstream's ui-test.yaml; keep the tag in lockstep with

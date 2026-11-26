@@ -26,7 +26,7 @@ permissions:
 
 jobs:
   sync:
-    if: github.repository == 'codeministry/renovate-operator'
+    if: github.repository == 'codeministry-io/renovate-operator'
     runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout main
