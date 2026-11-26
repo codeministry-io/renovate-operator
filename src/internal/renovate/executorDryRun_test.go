@@ -65,6 +65,13 @@ var dryRunLogs = strings.Join([]string{
 // Job with the given annotations, and returns the status update the executor persisted.
 func processFinishedRun(t *testing.T, jobName, project string, annotations map[string]string, store logStore.LogStore, logs string) *types.RenovateStatusUpdate {
 	t.Helper()
+	return processFinishedRunWith(t, false, jobName, project, annotations, store, logs)
+}
+
+// processFinishedRunWith is processFinishedRun for an executor that does or does
+// not collect security findings.
+func processFinishedRunWith(t *testing.T, collectSecurityFindings bool, jobName, project string, annotations map[string]string, store logStore.LogStore, logs string) *types.RenovateStatusUpdate {
+	t.Helper()
 	const ns = "renovate-operator"
 
 	var captured *types.RenovateStatusUpdate
@@ -99,7 +106,7 @@ func processFinishedRun(t *testing.T, jobName, project string, annotations map[s
 	}
 	k8sClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(k8sJob).Build()
 
-	executor := NewRenovateExecutor(scheme, manager, k8sClient, testLogger, nil, store, logReader, policy.Policy{})
+	executor := NewRenovateExecutor(scheme, manager, k8sClient, testLogger, nil, store, logReader, policy.Policy{}, collectSecurityFindings)
 	jobId := crdManager.RenovateJobIdentifier{Name: jobName, Namespace: ns}
 	if err := executor.ProcessProjectJobResult(context.Background(), k8sJob, project, jobId); err != nil {
 		t.Fatalf("ProcessProjectJobResult() error = %v", err)

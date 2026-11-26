@@ -243,18 +243,25 @@ func (s *Server) registerApiV1Routes(router *mux.Router) {
 	if s.features.JobOverview {
 		apiV1.HandleFunc("/overview", s.getOverview).Methods("GET")
 	}
+	if s.features.SecurityView {
+		apiV1.HandleFunc("/security", s.getSecurity).Methods("GET")
+	}
 }
 
 // versionFeatures tells the frontend which optional views are enabled. It is
 // omitted entirely while none is, which keeps the response as it always was.
 type versionFeatures struct {
-	JobOverview bool `json:"jobOverview,omitempty"`
+	JobOverview  bool `json:"jobOverview,omitempty"`
+	SecurityView bool `json:"securityView,omitempty"`
 }
 
 func (s *Server) getVersion(w http.ResponseWriter, r *http.Request) {
 	var features *versionFeatures
-	if s.features.JobOverview {
-		features = &versionFeatures{JobOverview: true}
+	if s.features.JobOverview || s.features.SecurityView {
+		features = &versionFeatures{
+			JobOverview:  s.features.JobOverview,
+			SecurityView: s.features.SecurityView,
+		}
 	}
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(struct {

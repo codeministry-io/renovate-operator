@@ -182,6 +182,63 @@ spec:
                 type: integer
               renovateResultStatus:
                 type: string
+              securityFindings:
+                description: SecurityFindings is only collected while the operator's
+                  security view is enabled.
+                properties:
+                  findings:
+                    items:
+                      description: |-
+                        SecurityFinding is one security update Renovate proposes for a repository,
+                        read from the report of its latest run (see docs/operations/security-view.md).
+                      properties:
+                        advisoryIds:
+                          description: |-
+                            AdvisoryIDs lists the advisories the update fixes (e.g. "GHSA-..."). Renovate
+                            logs them at debug level only, so they are empty for runs without debug logs.
+                          items:
+                            type: string
+                          type: array
+                        branch:
+                          description: Branch is the branch Renovate uses for the
+                            update.
+                          type: string
+                        branchResult:
+                          description: BranchResult is Renovate's result for Branch
+                            in that run, e.g. "pr-created" or "automerged".
+                          type: string
+                        currentVersion:
+                          description: CurrentVersion is the affected version the
+                            repository uses.
+                          type: string
+                        datasource:
+                          type: string
+                        manager:
+                          description: Manager is the Renovate manager that found
+                            the dependency, e.g. "npm".
+                          type: string
+                        newVersion:
+                          description: NewVersion is the version the security update
+                            moves to.
+                          type: string
+                        package:
+                          description: Package is the dependency as Renovate names
+                            it (depName).
+                          type: string
+                        prNumber:
+                          description: PRNumber is the pull request of Branch; zero
+                            when the run reported none.
+                          type: integer
+                        prTitle:
+                          type: string
+                      required:
+                      - branch
+                      - package
+                      type: object
+                    type: array
+                  truncated:
+                    type: boolean
+                type: object
               status:
                 type: string
             required:

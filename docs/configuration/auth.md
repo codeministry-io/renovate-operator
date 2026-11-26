@@ -354,7 +354,8 @@ private registry URLs, internal dependency names and branch names.
 
 **Rate-limit it at the ingress.** `anonymousRead` makes `/api/v1/renovatejobs`
 and `/api/v1/discovery/status` reachable without a session (and `/api/v1/overview`
-where the [job overview](../operations/job-overview.md) is enabled), and with
+where the [job overview](../operations/job-overview.md) is enabled, `/api/v1/security`
+where the [security view](../operations/security-view.md) is enabled), and with
 `anonymousReadLogs` so is `/api/v1/logs`, which opens a pod log stream against
 the Kubernetes API server per request. The operator does not rate-limit, so a
 dashboard actually exposed to the internet wants a limit in front of it, applied

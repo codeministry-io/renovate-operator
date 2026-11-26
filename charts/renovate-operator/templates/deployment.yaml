@@ -309,6 +309,10 @@ spec:
             - name: UI_JOB_OVERVIEW_ENABLED
               value: "true"
             {{- end }}
+            {{- if dig "securityView" "enabled" false (.Values.ui | default dict) }}
+            - name: UI_SECURITY_VIEW_ENABLED
+              value: "true"
+            {{- end }}
             {{- with .Values.authorization.defaults }}
             {{- with .readerGroups }}
             - name: AUTHORIZATION_DEFAULT_READER_GROUPS

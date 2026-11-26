@@ -36,6 +36,7 @@
     </script>
     <script src="js/theme-utils.js"></script>
     <script src="js/floating-utils.js"></script>
+    <script src="js/platform-urls.js"></script>
     <script src="js/babel.min.js"></script>
     <script src="js/babel-config.js"></script>
     <script type="module">
@@ -198,37 +199,10 @@
         return null;
       };
 
-      const _platformWebBase = (platform, endpoint) => {
-        if (!platform || platform === 'github') {
-          if (endpoint && !endpoint.includes('api.github.com')) {
-            return endpoint.replace(/\/api\/v\d+\/?$/, '').replace(/\/$/, '');
-          }
-          return 'https://github.com';
-        } else if (platform === 'gitlab') {
-          return (endpoint || 'https://gitlab.com').replace(/\/api\/v\d+\/?$/, '').replace(/\/$/, '');
-        } else if (platform === 'bitbucket') {
-          return 'https://bitbucket.org';
-        } else if (platform === 'bitbucket-server') {
-          return endpoint
-            ? endpoint.replace(/\/rest\/api\/(?:latest|\d+(?:\.\d+)*)\/?$/, '').replace(/\/$/, '')
-            : null;
-        } else if (platform === 'gitea' || platform === 'forgejo') {
-          return endpoint ? endpoint.replace(/\/api\/v\d+\/?$/, '').replace(/\/$/, '') : null;
-        }
-        return null;
-      };
-
-      const _bitbucketServerRepoUrl = (base, projectName) => {
-        const separator = projectName ? projectName.indexOf('/') : -1;
-        if (separator <= 0 || separator === projectName.length - 1) return null;
-
-        const projectKey = projectName.slice(0, separator);
-        const repoSlug = projectName.slice(separator + 1);
-        if (projectKey.startsWith('~')) {
-          return `${base}/users/${encodeURIComponent(projectKey.slice(1))}/repos/${encodeURIComponent(repoSlug)}`;
-        }
-        return `${base}/projects/${encodeURIComponent(projectKey)}/repos/${encodeURIComponent(repoSlug)}`;
-      };
+      // Shared with the security page (pages/security.html), see js/platform-urls.js.
+      const _platformWebBase = window.PlatformUrls.webBase;
+      const _bitbucketServerRepoUrl = window.PlatformUrls.bitbucketServerRepoUrl;
+      const buildSinglePRUrl = window.PlatformUrls.singlePullRequestUrl;
 
       const buildPRUrl = (platform, endpoint, projectName) => {
         const base = _platformWebBase(platform, endpoint);
@@ -241,21 +215,6 @@
           return repoUrl ? `${repoUrl}/pull-requests` : null;
         }
         if (platform === 'gitea' || platform === 'forgejo') return `${base}/${projectName}/pulls`;
-        return null;
-      };
-
-      const buildSinglePRUrl = (platform, endpoint, projectName, prNumber) => {
-        if (!prNumber) return null;
-        const base = _platformWebBase(platform, endpoint);
-        if (!base) return null;
-        if (!platform || platform === 'github') return `${base}/${projectName}/pull/${prNumber}`;
-        if (platform === 'gitlab') return `${base}/${projectName}/-/merge_requests/${prNumber}`;
-        if (platform === 'bitbucket') return `${base}/${projectName}/pull-requests/${prNumber}`;
-        if (platform === 'bitbucket-server') {
-          const repoUrl = _bitbucketServerRepoUrl(base, projectName);
-          return repoUrl ? `${repoUrl}/pull-requests/${prNumber}` : null;
-        }
-        if (platform === 'gitea' || platform === 'forgejo') return `${base}/${projectName}/pulls/${prNumber}`;
         return null;
       };
 
@@ -1624,6 +1583,19 @@
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
                       </svg>
                       <span className="hidden sm:inline">Overview</span>
+                    </a>
+                  )}
+                  {/* Only where the operator serves the security view (ui.securityView.enabled). */}
+                  {features.securityView && (
+                    <a
+                      href={`${BASE}/security`}
+                      className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700/50 hover:text-primary dark:hover:text-primary transition-colors"
+                      aria-label="Security updates"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
+                      </svg>
+                      <span className="hidden sm:inline">Security</span>
                     </a>
                   )}
                   {searchFilteredJobs.length > 0 && (

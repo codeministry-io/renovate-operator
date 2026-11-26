@@ -59,22 +59,26 @@ type renovateExecutor struct {
 	logStore  logStore.LogStore
 	logReader podLogs.PodLogReader
 	policy    policy.Policy
+	// collectSecurityFindings records each run's security updates in the project
+	// status; only the UI's security view reads them.
+	collectSecurityFindings bool
 }
 
 type executionOptions struct {
 	globalParallelism int
 }
 
-func NewRenovateExecutor(scheme *runtime.Scheme, manager crdManager.RenovateJobManager, client client.Client, logger logr.Logger, health health.HealthCheck, ls logStore.LogStore, lr podLogs.PodLogReader, p policy.Policy) RenovateExecutor {
+func NewRenovateExecutor(scheme *runtime.Scheme, manager crdManager.RenovateJobManager, client client.Client, logger logr.Logger, health health.HealthCheck, ls logStore.LogStore, lr podLogs.PodLogReader, p policy.Policy, collectSecurityFindings bool) RenovateExecutor {
 	return &renovateExecutor{
-		client:    client,
-		scheme:    scheme,
-		manager:   manager,
-		logger:    logger,
-		health:    health,
-		logStore:  ls,
-		logReader: lr,
-		policy:    p,
+		client:                  client,
+		scheme:                  scheme,
+		manager:                 manager,
+		logger:                  logger,
+		health:                  health,
+		logStore:                ls,
+		logReader:               lr,
+		policy:                  p,
+		collectSecurityFindings: collectSecurityFindings,
 	}
 }
 
@@ -272,6 +276,9 @@ func (e *renovateExecutor) ProcessProjectJobResult(ctx context.Context, k8sJob *
 				newProjectStatus.RenovateResultStatus = parseResult.RenovateResultStatus
 				newProjectStatus.PRActivity = parseResult.PRActivity
 				newProjectStatus.LogIssues = parseResult.LogIssues
+				if e.collectSecurityFindings {
+					newProjectStatus.SecurityFindings = parser.ParseSecurityFindings(logs)
+				}
 			}
 		} else {
 			log.FromContext(ctx).Error(err, "failed to get logs for metrics parsing", "project", project)

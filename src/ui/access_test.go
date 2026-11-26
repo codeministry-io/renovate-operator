@@ -607,7 +607,7 @@ func TestAccessStatusCleanWhenEnforceable(t *testing.T) {
 }
 
 func TestIsAnonymousReadPath(t *testing.T) {
-	anonymous := []string{"/", "/index.html", "/logs", "/overview", "/api/v1/version", "/api/v1/renovatejobs", "/api/v1/overview", "/api/v1/logs", "/api/v1/discovery/status"}
+	anonymous := []string{"/", "/index.html", "/logs", "/overview", "/security", "/api/v1/version", "/api/v1/renovatejobs", "/api/v1/overview", "/api/v1/security", "/api/v1/logs", "/api/v1/discovery/status"}
 	for _, path := range anonymous {
 		if !isAnonymousReadPath(path) {
 			t.Errorf("expected %q to be reachable without a session", path)

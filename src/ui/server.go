@@ -45,6 +45,9 @@ type Server struct {
 type Features struct {
 	// JobOverview serves the job overview page and GET /api/v1/overview.
 	JobOverview bool
+	// SecurityView serves the security page and GET /api/v1/security, and makes
+	// the executor record each run's security updates in the project status.
+	SecurityView bool
 }
 
 func NewServer(manager crdmanager.RenovateJobManager, discovery renovate.DiscoveryAgent, scheduler scheduler.Scheduler, logger logr.Logger, health health.HealthCheck, version string, auth AuthProvider, accessDefaults AccessDefaults, setup SetupEnvironment, features Features) *Server {

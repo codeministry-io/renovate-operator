@@ -105,7 +105,12 @@ basePath: ""
 ui:
   jobOverview:
     # -- serve the job overview page (runs, failure rate, projects with problems and last run per
-    # -- RenovateJob) and its API endpoint. Shows only jobs the user can read. See docs/operations/job-overview.md.
+    # RenovateJob) and its API endpoint. Shows only jobs the user can read. See docs/operations/job-overview.md.
+    enabled: false
+  securityView:
+    # -- serve the security page (the security updates Renovate reported per repository, with their pull
+    # request) and its API endpoint, and record each run's security updates in the RenovateProject status.
+    # Shows only jobs the user can read. See docs/operations/security-view.md.
     enabled: false
 
 ingress:
