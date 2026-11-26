@@ -3,11 +3,11 @@
 # build-main-image.yaml are disabled in this fork (self-hosted runners, and
 # release.yaml would push into mogenius' chart repo).
 #
-# Image: ghcr.io/codeministry/renovate-operator:<appVersion>-cm.<run>
+# Image: ghcr.io/codeministry-io/renovate-operator:<appVersion>-cm.<run>
 #   arm64 only, built natively, ONE plain image manifest (no index, no
 #   provenance): Trivy scans single-platform images only when they are not
 #   wrapped in an index, and every node of the cluster is arm64.
-# Chart: oci://ghcr.io/codeministry/charts/renovate-operator, same version,
+# Chart: oci://ghcr.io/codeministry-io/charts/renovate-operator, same version,
 #   image.repository pointed at the fork image at package time only, so the
 #   chart sources stay identical to upstream and merge without conflicts.
 #
@@ -32,7 +32,7 @@ concurrency:
 jobs:
   release:
     if: >-
-      github.repository == 'codeministry/renovate-operator' &&
+      github.repository == 'codeministry-io/renovate-operator' &&
       (github.event_name == 'workflow_dispatch' ||
        (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'))
     runs-on: ubuntu-24.04-arm
@@ -41,8 +41,8 @@ jobs:
       contents: read
       packages: write
     env:
-      IMAGE: ghcr.io/codeministry/renovate-operator
-      CHART_REPO: oci://ghcr.io/codeministry/charts
+      IMAGE: ghcr.io/codeministry-io/renovate-operator
+      CHART_REPO: oci://ghcr.io/codeministry-io/charts
     steps:
       - name: Checkout the commit CI tested
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -71,7 +71,7 @@ jobs:
             --platform linux/arm64 \
             --provenance=false --sbom=false \
             --build-arg VERSION="$VERSION" \
-            --label org.opencontainers.image.source=https://github.com/codeministry/renovate-operator \
+            --label org.opencontainers.image.source=https://github.com/codeministry-io/renovate-operator \
             --label org.opencontainers.image.revision="$(git rev-parse HEAD)" \
             --label org.opencontainers.image.version="$VERSION" \
             --tag "$IMAGE:$VERSION" \
@@ -98,8 +98,8 @@ jobs:
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
-          sed -i 's#^  repository: mogenius/renovate-operator$#  repository: codeministry/renovate-operator#' charts/renovate-operator/values.yaml
-          grep -q '^  repository: codeministry/renovate-operator$' charts/renovate-operator/values.yaml \
+          sed -i 's#^  repository: mogenius/renovate-operator$#  repository: codeministry-io/renovate-operator#' charts/renovate-operator/values.yaml
+          grep -q '^  repository: codeministry-io/renovate-operator$' charts/renovate-operator/values.yaml \
             || { echo "::error::image.repository not rewritten"; exit 1; }
           helm repo add valkey https://valkey.io/valkey-helm/ >/dev/null
           helm dependency build charts/renovate-operator
