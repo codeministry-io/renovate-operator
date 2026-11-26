@@ -33,13 +33,20 @@ class DashboardPage {
     this.suspendRequests = [];
   }
 
-  async stubApi(renovateJobs) {
+  /**
+   * @param features the optional views /api/v1/version advertises, e.g.
+   *        { jobOverview: true }; null serves the response of an operator that
+   *        enables none, which carries no `features` key at all.
+   */
+  async stubApi(renovateJobs, { features = null } = {}) {
     // Matches with and without a BASE_PATH prefix.
     await this.page.route("**/api/v1/auth/status", (route) =>
       route.fulfill({ json: { enabled: false } }),
     );
     await this.page.route("**/api/v1/version", (route) =>
-      route.fulfill({ json: { version: OPERATOR_VERSION } }),
+      route.fulfill({
+        json: features ? { version: OPERATOR_VERSION, features } : { version: OPERATOR_VERSION },
+      }),
     );
     await this.page.route("**/api/v1/renovatejobs", (route) =>
       route.fulfill({ json: renovateJobs }),
@@ -66,12 +73,13 @@ class DashboardPage {
    * @param search       value for the ?search= query parameter
    * @param expectedJobCount how many cards should render; defaults to every job,
    *        which is not the case when a filter or search hides some of them.
+   * @param features   optional views /api/v1/version advertises, see stubApi
    */
   async open(
     renovateJobs,
-    { statFilter = null, search = null, expectedJobCount = renovateJobs.length } = {},
+    { statFilter = null, search = null, expectedJobCount = renovateJobs.length, features = null } = {},
   ) {
-    await this.stubApi(renovateJobs);
+    await this.stubApi(renovateJobs, { features });
     const query = new URLSearchParams();
     if (statFilter) query.set("filter", statFilter);
     if (search) query.set("search", search);

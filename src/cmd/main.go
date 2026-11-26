@@ -497,6 +497,17 @@ func main() {
 			},
 		},
 		{
+			Key:      "UI_JOB_OVERVIEW_ENABLED",
+			Optional: true,
+			Default:  "false",
+			Validate: func(value string) error {
+				if value != "true" && value != "false" {
+					return fmt.Errorf("'UI_JOB_OVERVIEW_ENABLED' must be 'true' or 'false'")
+				}
+				return nil
+			},
+		},
+		{
 			Key:      "OIDC_ALLOWED_GROUP_PREFIX",
 			Optional: true,
 			Default:  "",
@@ -931,6 +942,8 @@ func main() {
 		LogStorageConfigured: config.GetValue("LOG_STORE_MODE") != "disabled",
 		OwnNamespace:         operatorNamespace(),
 		SecretReader:         mgr.GetClient(),
+	}, ui.Features{
+		JobOverview: config.GetValue("UI_JOB_OVERVIEW_ENABLED") == "true",
 	})
 
 	if config.GetValue("WEBHOOK_SERVER_ENABLED") != "false" {
