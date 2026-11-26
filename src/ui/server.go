@@ -36,10 +36,18 @@ type Server struct {
 	// state stops checking projects and secrets for a guide nobody sees.
 	// It resets when the last RenovateJob is deleted (starting over).
 	setupComplete atomic.Bool
+	features      Features
 	Router        *mux.Router
 }
 
-func NewServer(manager crdmanager.RenovateJobManager, discovery renovate.DiscoveryAgent, scheduler scheduler.Scheduler, logger logr.Logger, health health.HealthCheck, version string, auth AuthProvider, accessDefaults AccessDefaults, setup SetupEnvironment) *Server {
+// Features holds the optional UI views an install turns on. Each is off in its
+// zero value, so a view that is not enabled registers no route and no page.
+type Features struct {
+	// JobOverview serves the job overview page and GET /api/v1/overview.
+	JobOverview bool
+}
+
+func NewServer(manager crdmanager.RenovateJobManager, discovery renovate.DiscoveryAgent, scheduler scheduler.Scheduler, logger logr.Logger, health health.HealthCheck, version string, auth AuthProvider, accessDefaults AccessDefaults, setup SetupEnvironment, features Features) *Server {
 	return &Server{
 		manager:        manager,
 		logger:         logger,
@@ -50,6 +58,7 @@ func NewServer(manager crdmanager.RenovateJobManager, discovery renovate.Discove
 		auth:           auth,
 		accessDefaults: accessDefaults,
 		setup:          setup,
+		features:       features,
 		Router:         mux.NewRouter(),
 	}
 }

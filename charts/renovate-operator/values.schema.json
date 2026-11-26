@@ -227,6 +227,23 @@
       "description": "sub-path the UI, API and auth endpoints are served under (e.g. \"/renovate\"); empty serves from the root",
       "type": "string"
     },
+    "ui": {
+      "description": "optional UI views, each off by default",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "jobOverview": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "whether to serve the job overview page and GET /api/v1/overview",
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
     "ingress": { "$ref": "#/$defs/ingress" },
     "route": { "$ref": "#/$defs/httpRoute" },
     "webhook": {

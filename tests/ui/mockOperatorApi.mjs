@@ -11,6 +11,7 @@
 // /api/v1/logs, which is an event stream rather than a JSON document.
 
 import { buildMultiJobDashboard } from "./fixtures/renovateJobsFixture.mjs";
+import { summarizeRenovateJobs } from "./fixtures/overviewFixture.mjs";
 import { buildRenovateRunLog } from "./fixtures/renovateLogsFixture.mjs";
 
 const MOCK_VERSION = "dev-mock";
@@ -90,10 +91,14 @@ export function createMockOperatorApi({
           sendJson(response, { enabled: false });
           return true;
         case "/api/v1/version":
-          sendJson(response, { version: MOCK_VERSION });
+          // Advertises the job overview so the dashboard links to it.
+          sendJson(response, { version: MOCK_VERSION, features: { jobOverview: true } });
           return true;
         case "/api/v1/renovatejobs":
           sendJson(response, renovateJobs);
+          return true;
+        case "/api/v1/overview":
+          sendJson(response, summarizeRenovateJobs(renovateJobs));
           return true;
         case "/api/v1/logs": {
           const query = new URL(request.url, "http://127.0.0.1").searchParams;

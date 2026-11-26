@@ -101,6 +101,13 @@ config:
 # -- with your identity provider must include this sub-path.
 basePath: ""
 
+# -- optional UI views, each off by default
+ui:
+  jobOverview:
+    # -- serve the job overview page (runs, failure rate, projects with problems and last run per
+    # -- RenovateJob) and its API endpoint. Shows only jobs the user can read. See docs/operations/job-overview.md.
+    enabled: false
+
 ingress:
   # -- whether to enable the ingress renovate-operator
   enabled: false

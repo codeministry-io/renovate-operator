@@ -455,6 +455,26 @@ tests:
         name: AUTHORIZATION_SUSPEND_FROM_UI
         value: "false"
 
+- it: Leaves the job overview off by default
+  asserts:
+  - notContains:
+      path: spec.template.spec.containers[0].env
+      any: true
+      content:
+        name: UI_JOB_OVERVIEW_ENABLED
+
+- it: Serves the job overview when ui.jobOverview.enabled is true
+  set:
+    ui:
+      jobOverview:
+        enabled: true
+  asserts:
+  - contains:
+      path: spec.template.spec.containers[0].env
+      content:
+        name: UI_JOB_OVERVIEW_ENABLED
+        value: "true"
+
 - it: Offers the UI suspend button when authorization.suspendFromUI is true
   set:
     authorization:
