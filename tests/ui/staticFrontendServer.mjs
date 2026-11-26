@@ -130,10 +130,16 @@ export function createStaticFrontendServer({
       return;
     }
 
-    // The operator registers this route only with ui.jobOverview.enabled; the
-    // stand-in always serves it and leaves the switch to the stubbed API.
+    // The operator registers these routes only with ui.jobOverview.enabled and
+    // ui.securityView.enabled; the stand-in always serves them and leaves the
+    // switches to the stubbed API.
     if (relativePath === "/overview") {
       await serveHtmlPage(response, path.join(staticRootDirectory, "pages/overview.html"), basePath);
+      return;
+    }
+
+    if (relativePath === "/security") {
+      await serveHtmlPage(response, path.join(staticRootDirectory, "pages/security.html"), basePath);
       return;
     }
 

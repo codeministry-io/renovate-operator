@@ -241,6 +241,16 @@
               "type": "boolean"
             }
           }
+        },
+        "securityView": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "whether to record each run's security updates and serve the security page and GET /api/v1/security",
+              "type": "boolean"
+            }
+          }
         }
       }
     },

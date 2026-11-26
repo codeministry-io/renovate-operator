@@ -508,6 +508,17 @@ func main() {
 			},
 		},
 		{
+			Key:      "UI_SECURITY_VIEW_ENABLED",
+			Optional: true,
+			Default:  "false",
+			Validate: func(value string) error {
+				if value != "true" && value != "false" {
+					return fmt.Errorf("'UI_SECURITY_VIEW_ENABLED' must be 'true' or 'false'")
+				}
+				return nil
+			},
+		},
+		{
 			Key:      "OIDC_ALLOWED_GROUP_PREFIX",
 			Optional: true,
 			Default:  "",
@@ -936,15 +947,18 @@ func main() {
 
 	warnAccessRulesEnforceable(ctrl.Log.WithName("auth"), auth.provider, auth.accessDefaults)
 
+	features := ui.Features{
+		JobOverview:  config.GetValue("UI_JOB_OVERVIEW_ENABLED") == "true",
+		SecurityView: config.GetValue("UI_SECURITY_VIEW_ENABLED") == "true",
+	}
+
 	// UI and webhook servers run on all replicas
 	uiServer := ui.NewServer(jobMgr, discovery, cronManager, ctrl.Log.WithName("ui-server"), health, Version, auth.provider, auth.accessDefaults, ui.SetupEnvironment{
 		PolicyEnabled:        !guardRails.Disabled,
 		LogStorageConfigured: config.GetValue("LOG_STORE_MODE") != "disabled",
 		OwnNamespace:         operatorNamespace(),
 		SecretReader:         mgr.GetClient(),
-	}, ui.Features{
-		JobOverview: config.GetValue("UI_JOB_OVERVIEW_ENABLED") == "true",
-	})
+	}, features)
 
 	if config.GetValue("WEBHOOK_SERVER_ENABLED") != "false" {
 		webhookServer := webhook.NewWebookServer(jobMgr, discovery, ctrl.Log.WithName("webhook")).
@@ -967,6 +981,7 @@ func main() {
 		ls,
 		podLogReader,
 		guardRails,
+		features.SecurityView,
 	)
 
 	githubAppToken := github.NewGitHubAppTokenCreatorWithLogger(mgr.GetClient(), ctrl.Log.WithName("github-app-token"), guardRails)

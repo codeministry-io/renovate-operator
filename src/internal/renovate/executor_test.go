@@ -90,7 +90,7 @@ func TestProcessProjectJobResultAbortedRunKeepsPRGauges(t *testing.T) {
 	}
 	k8sClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(k8sJob).Build()
 
-	executor := NewRenovateExecutor(scheme, manager, k8sClient, testLogger, nil, fakeLogStore{}, logReader, policy.Policy{})
+	executor := NewRenovateExecutor(scheme, manager, k8sClient, testLogger, nil, fakeLogStore{}, logReader, policy.Policy{}, false)
 
 	jobId := crdManager.RenovateJobIdentifier{Name: jobName, Namespace: ns}
 	if err := executor.ProcessProjectJobResult(context.Background(), k8sJob, project, jobId); err != nil {

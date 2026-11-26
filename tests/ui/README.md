@@ -28,6 +28,8 @@ behavior, not the operator's job lifecycle. Unhandled routes return a JSON 404.
 
 The mock advertises the [job overview](../../docs/operations/job-overview.md) and
 serves `/api/v1/overview` from the same jobs, so the dashboard links to `/overview`.
+It also advertises the [security view](../../docs/operations/security-view.md) and
+serves `/api/v1/security` with a fixed set of findings, so the dashboard links to `/security`.
 
 The log links on a project row work as well: `/api/v1/logs` is mocked as a real
 event stream whose entries arrive on a timer, so the page streams them in rather
@@ -78,6 +80,7 @@ tests/ui/
 │   ├── renovateJobsFixture.mjs  # /api/v1/renovatejobs payload builders
 │   ├── logsFixture.mjs          # log-stream stub + logs page object
 │   ├── overviewFixture.mjs      # /api/v1/overview payloads + job overview page object
+│   ├── securityFixture.mjs      # /api/v1/security payloads + security page object
 │   └── renovateLogsFixture.mjs  # /api/v1/logs event-stream builders
 └── specs/
     ├── jobCardExpansion.spec.mjs

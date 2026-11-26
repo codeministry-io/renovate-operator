@@ -26,7 +26,7 @@ src/
 │   ├── podLogs/         # streams logs from executor Job pods
 │   ├── webhookSync/     # provider-agnostic repo webhook sync
 │   ├── policy/          # install-wide guard rails on RenovateJob specs
-│   ├── parser/          # extracts discovered repos and dependency issues from Renovate logs
+│   ├── parser/          # extracts discovered repos, dependency issues and security updates from Renovate logs
 │   ├── renovate/        # discovery, executor, job definitions (jobDefinitions.go)
 │   ├── telemetry/       # OpenTelemetry wiring
 │   ├── types/           # shared internal types

@@ -35,7 +35,7 @@ class DashboardPage {
 
   /**
    * @param features the optional views /api/v1/version advertises, e.g.
-   *        { jobOverview: true }; null serves the response of an operator that
+   *        { jobOverview: true, securityView: true }; null serves the response of an operator that
    *        enables none, which carries no `features` key at all.
    */
   async stubApi(renovateJobs, { features = null } = {}) {

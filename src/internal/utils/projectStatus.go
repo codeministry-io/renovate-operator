@@ -40,6 +40,7 @@ func validateProjectStatusScheduled(projectStatus *api.RenovateProjectState, des
 	updateRenovateResultStatus(projectStatus, desiredStatus.RenovateResultStatus)
 	updatePRActivity(projectStatus, desiredStatus.PRActivity)
 	updateLogIssues(projectStatus, desiredStatus.LogIssues)
+	updateSecurityFindings(projectStatus, desiredStatus.SecurityFindings)
 	return projectStatus
 }
 
@@ -54,6 +55,7 @@ func validateProjectStatusRunning(projectStatus *api.RenovateProjectState, desir
 	updateRenovateResultStatus(projectStatus, desiredStatus.RenovateResultStatus)
 	updatePRActivity(projectStatus, desiredStatus.PRActivity)
 	updateLogIssues(projectStatus, desiredStatus.LogIssues)
+	updateSecurityFindings(projectStatus, desiredStatus.SecurityFindings)
 	return projectStatus
 }
 
@@ -67,6 +69,7 @@ func validateProjectStatusCompleted(projectStatus *api.RenovateProjectState, des
 	updateRenovateResultStatus(projectStatus, desiredStatus.RenovateResultStatus)
 	updatePRActivity(projectStatus, desiredStatus.PRActivity)
 	updateLogIssues(projectStatus, desiredStatus.LogIssues)
+	updateSecurityFindings(projectStatus, desiredStatus.SecurityFindings)
 	return projectStatus
 }
 
@@ -80,6 +83,7 @@ func validateProjectStatusFailed(projectStatus *api.RenovateProjectState, desire
 	updateRenovateResultStatus(projectStatus, desiredStatus.RenovateResultStatus)
 	updatePRActivity(projectStatus, desiredStatus.PRActivity)
 	updateLogIssues(projectStatus, desiredStatus.LogIssues)
+	updateSecurityFindings(projectStatus, desiredStatus.SecurityFindings)
 	return projectStatus
 }
 
@@ -93,6 +97,7 @@ func validateProjectStatusCancelled(projectStatus *api.RenovateProjectState, des
 	updateRenovateResultStatus(projectStatus, desiredStatus.RenovateResultStatus)
 	updatePRActivity(projectStatus, desiredStatus.PRActivity)
 	updateLogIssues(projectStatus, desiredStatus.LogIssues)
+	updateSecurityFindings(projectStatus, desiredStatus.SecurityFindings)
 	return projectStatus
 }
 
@@ -111,5 +116,13 @@ func updatePRActivity(projectStatus *api.RenovateProjectState, activity *api.PRA
 func updateLogIssues(projectStatus *api.RenovateProjectState, issues *api.LogIssues) {
 	if issues != nil {
 		projectStatus.LogIssues = issues
+	}
+}
+
+// updateSecurityFindings keeps the last known findings when a run yielded none
+// (security view off, aborted run, unreadable logs).
+func updateSecurityFindings(projectStatus *api.RenovateProjectState, findings *api.SecurityFindings) {
+	if findings != nil {
+		projectStatus.SecurityFindings = findings
 	}
 }

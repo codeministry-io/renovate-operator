@@ -12,6 +12,7 @@
 
 import { buildMultiJobDashboard } from "./fixtures/renovateJobsFixture.mjs";
 import { summarizeRenovateJobs } from "./fixtures/overviewFixture.mjs";
+import { buildSecurityWithEveryFindingState } from "./fixtures/securityFixture.mjs";
 import { buildRenovateRunLog } from "./fixtures/renovateLogsFixture.mjs";
 
 const MOCK_VERSION = "dev-mock";
@@ -91,14 +92,17 @@ export function createMockOperatorApi({
           sendJson(response, { enabled: false });
           return true;
         case "/api/v1/version":
-          // Advertises the job overview so the dashboard links to it.
-          sendJson(response, { version: MOCK_VERSION, features: { jobOverview: true } });
+          // Advertises both optional views so the dashboard links to them.
+          sendJson(response, { version: MOCK_VERSION, features: { jobOverview: true, securityView: true } });
           return true;
         case "/api/v1/renovatejobs":
           sendJson(response, renovateJobs);
           return true;
         case "/api/v1/overview":
           sendJson(response, summarizeRenovateJobs(renovateJobs));
+          return true;
+        case "/api/v1/security":
+          sendJson(response, buildSecurityWithEveryFindingState());
           return true;
         case "/api/v1/logs": {
           const query = new URL(request.url, "http://127.0.0.1").searchParams;
