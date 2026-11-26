@@ -207,6 +207,8 @@ Kubernetes: `>=1.29.0-0`
 | telemetry.protocol | string | `"grpc"` | OTLP protocol for the operator. Only "grpc" is currently supported. |
 | tolerations | list | `[]` | tolerations for the operator pod |
 | topologySpreadConstraints | list | `[]` | topologySpreadConstraints for the operator pod |
+| ui | object | `{"securityView":{"enabled":false}}` | optional UI views, each off by default |
+| ui.securityView.enabled | bool | `false` | serve the security page (the security updates Renovate reported per repository, with their pull request) and its API endpoint, and record each run's security updates in the RenovateProject status. Shows only jobs the user can read. See docs/operations/security-view.md. |
 | valkey | object | `{"auth":{"aclUsers":{"default":{"password":"","passwordKey":"","permissions":"~* &* +@all"}},"enabled":true,"usersExistingSecret":""},"deploymentStrategy":"RollingUpdate","enabled":false,"metrics":{"enabled":false,"serviceMonitor":{"enabled":false}},"persistence":{"enabled":false}}` | optional: deploy a Valkey instance for session storage (recommended for multi-replica) |
 | webhook.baseUrl | string | `""` | optional: override the webhook base URL (WEBHOOK_BASE_URL), e.g. when the ingress or gateway is behind a proxy. |
 | webhook.baseUrlScheme | string | `""` | optional: override the scheme (http or https) of the auto-derived webhook base URL (WEBHOOK_BASE_URL), e.g. when TLS terminates at an external load balancer or Gateway |

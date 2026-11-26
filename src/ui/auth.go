@@ -210,9 +210,10 @@ func isPublicPath(path string) bool {
 
 func isAnonymousReadPath(path string) bool {
 	switch path {
-	case "/", "/index.html", "/logs",
+	case "/", "/index.html", "/logs", "/security",
 		"/api/v1/version",
 		"/api/v1/renovatejobs",
+		"/api/v1/security",
 		"/api/v1/logs",
 		"/api/v1/discovery/status":
 		return true

@@ -240,14 +240,29 @@ func (s *Server) registerApiV1Routes(router *mux.Router) {
 	apiV1.HandleFunc("/discovery/start", s.runDiscoveryForProject).Methods("POST")
 	apiV1.HandleFunc("/discovery/status", s.discoveryStatusForProject).Methods("GET")
 	apiV1.HandleFunc("/renovatejob/suspend", s.setRenovateJobsSuspend).Methods("POST")
+	if s.features.SecurityView {
+		apiV1.HandleFunc("/security", s.getSecurity).Methods("GET")
+	}
+}
+
+// versionFeatures tells the frontend which optional views are enabled. It is
+// omitted entirely while none is, which keeps the response as it always was.
+type versionFeatures struct {
+	SecurityView bool `json:"securityView,omitempty"`
 }
 
 func (s *Server) getVersion(w http.ResponseWriter, r *http.Request) {
+	var features *versionFeatures
+	if s.features.SecurityView {
+		features = &versionFeatures{SecurityView: true}
+	}
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(struct {
-		Version string `json:"version"`
+		Version  string           `json:"version"`
+		Features *versionFeatures `json:"features,omitempty"`
 	}{
-		Version: s.version,
+		Version:  s.version,
+		Features: features,
 	})
 }
 

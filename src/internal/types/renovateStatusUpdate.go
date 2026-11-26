@@ -10,6 +10,7 @@ type RenovateStatusUpdate struct {
 	RenovateResultStatus *string
 	PRActivity           *api.PRActivity
 	LogIssues            *api.LogIssues
+	SecurityFindings     *api.SecurityFindings
 	Duration             *string
 	ExecutionOptions     *api.RenovateExecutionOptions
 }

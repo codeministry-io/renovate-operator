@@ -101,6 +101,14 @@ config:
 # -- with your identity provider must include this sub-path.
 basePath: ""
 
+# -- optional UI views, each off by default
+ui:
+  securityView:
+    # -- serve the security page (the security updates Renovate reported per repository, with their pull
+    # request) and its API endpoint, and record each run's security updates in the RenovateProject status.
+    # Shows only jobs the user can read. See docs/operations/security-view.md.
+    enabled: false
+
 ingress:
   # -- whether to enable the ingress renovate-operator
   enabled: false

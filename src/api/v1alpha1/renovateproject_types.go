@@ -58,6 +58,36 @@ type LogIssues struct {
 	AbandonedDependencies []string `json:"abandonedDependencies,omitempty"`
 }
 
+// SecurityFinding is one security update Renovate proposes for a repository,
+// read from the report of its latest run (see docs/operations/security-view.md).
+type SecurityFinding struct {
+	// Package is the dependency as Renovate names it (depName).
+	Package string `json:"package"`
+	// Manager is the Renovate manager that found the dependency, e.g. "npm".
+	Manager    string `json:"manager,omitempty"`
+	Datasource string `json:"datasource,omitempty"`
+	// CurrentVersion is the affected version the repository uses.
+	CurrentVersion string `json:"currentVersion,omitempty"`
+	// NewVersion is the version the security update moves to.
+	NewVersion string `json:"newVersion,omitempty"`
+	// Branch is the branch Renovate uses for the update.
+	Branch string `json:"branch"`
+	// PRNumber is the pull request of Branch; zero when the run reported none.
+	PRNumber int    `json:"prNumber,omitempty"`
+	PRTitle  string `json:"prTitle,omitempty"`
+	// BranchResult is Renovate's result for Branch in that run, e.g. "pr-created" or "automerged".
+	BranchResult string `json:"branchResult,omitempty"`
+	// AdvisoryIDs lists the advisories the update fixes (e.g. "GHSA-..."). Renovate
+	// logs them at debug level only, so they are empty for runs without debug logs.
+	AdvisoryIDs []string `json:"advisoryIds,omitempty"`
+}
+
+// SecurityFindings lists the security updates of a repository's latest run.
+type SecurityFindings struct {
+	Findings  []SecurityFinding `json:"findings,omitempty"`
+	Truncated bool              `json:"truncated,omitempty"`
+}
+
 type RenovateProjectStatus string
 
 const (
@@ -99,6 +129,8 @@ type RenovateProjectState struct {
 	PRActivity           *PRActivity               `json:"prActivity,omitempty"`
 	LogIssues            *LogIssues                `json:"logIssues,omitempty"`
 	ExecutionOptions     *RenovateExecutionOptions `json:"executionOptions,omitempty"`
+	// SecurityFindings is only collected while the operator's security view is enabled.
+	SecurityFindings *SecurityFindings `json:"securityFindings,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -170,6 +202,25 @@ func (in *RenovateProject) DeepCopyInto(out *RenovateProject) {
 		out.Status.ExecutionOptions = new(RenovateExecutionOptions)
 		*out.Status.ExecutionOptions = *in.Status.ExecutionOptions
 	}
+	if in.Status.SecurityFindings != nil {
+		out.Status.SecurityFindings = in.Status.SecurityFindings.DeepCopy()
+	}
+}
+
+// DeepCopy returns a copy that shares no slice with in.
+func (in *SecurityFindings) DeepCopy() *SecurityFindings {
+	if in == nil {
+		return nil
+	}
+	out := &SecurityFindings{Truncated: in.Truncated}
+	if in.Findings != nil {
+		out.Findings = make([]SecurityFinding, len(in.Findings))
+		for i, finding := range in.Findings {
+			out.Findings[i] = finding
+			out.Findings[i].AdvisoryIDs = slices.Clone(finding.AdvisoryIDs)
+		}
+	}
+	return out
 }
 
 func (in *RenovateProjectList) DeepCopyObject() runtime.Object {

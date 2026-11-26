@@ -305,6 +305,10 @@ spec:
               value: {{ dig "enabled" true .Values.authorization | quote }}
             - name: AUTHORIZATION_SUSPEND_FROM_UI
               value: {{ dig "suspendFromUI" false .Values.authorization | quote }}
+            {{- if dig "securityView" "enabled" false (.Values.ui | default dict) }}
+            - name: UI_SECURITY_VIEW_ENABLED
+              value: "true"
+            {{- end }}
             {{- with .Values.authorization.defaults }}
             {{- with .readerGroups }}
             - name: AUTHORIZATION_DEFAULT_READER_GROUPS

@@ -150,3 +150,24 @@ func TestScheduledExecutionOptions(t *testing.T) {
 		}
 	})
 }
+
+func TestGetUpdateStatusForProjectKeepsSecurityFindingsWithoutNewOnes(t *testing.T) {
+	known := &api.SecurityFindings{Findings: []api.SecurityFinding{{Package: "lodash", Branch: "renovate/npm-lodash-vulnerability"}}}
+
+	kept := GetUpdateStatusForProject(
+		&api.RenovateProjectState{Status: api.JobStatusRunning, SecurityFindings: known},
+		&types.RenovateStatusUpdate{Status: api.JobStatusCompleted},
+	)
+	if kept.SecurityFindings != known {
+		t.Errorf("SecurityFindings = %+v, want the last known findings kept", kept.SecurityFindings)
+	}
+
+	none := &api.SecurityFindings{}
+	replaced := GetUpdateStatusForProject(
+		&api.RenovateProjectState{Status: api.JobStatusRunning, SecurityFindings: known},
+		&types.RenovateStatusUpdate{Status: api.JobStatusCompleted, SecurityFindings: none},
+	)
+	if replaced.SecurityFindings != none {
+		t.Errorf("SecurityFindings = %+v, want the new, empty findings", replaced.SecurityFindings)
+	}
+}

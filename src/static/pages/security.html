@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Security updates - Renovate Operator</title>
+  <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-small.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon.png" />
+
+  <script src="js/tailwind.min.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: "#009bc5",
+            "primary-hover": "#00556c",
+            success: "#00c567",
+            error: "#c22828",
+            warning: "#ff8c1a",
+          },
+        },
+      },
+    };
+  </script>
+  <script src="js/theme-utils.js"></script>
+  <script src="js/floating-utils.js"></script>
+  <script src="js/platform-urls.js"></script>
+  <script src="js/babel.min.js"></script>
+  <script src="js/babel-config.js"></script>
+  <script type="module">
+    import { React, createRoot, createPortal } from './js/react-bundle.esm.js';
+    window.React = React;
+    window.createRoot = createRoot;
+    window.createPortal = createPortal;
+  </script>
+  <script type="module">
+    import * as FloatingUI from './js/floating-ui.esm.js';
+    window.FloatingUI = FloatingUI;
+  </script>
+  <script type="text/babel" src="components/Spinner.js"></script>
+  <script type="text/babel" src="components/ThemeToggle.js"></script>
+  <script type="text/babel" src="components/SiteHeader.js"></script>
+  <script type="text/babel" src="components/StatBadge.js"></script>
+  <script type="text/babel" src="components/Footer.js"></script>
+  <script type="text/babel" src="components/Keycap.js"></script>
+  <script type="text/babel" src="components/Tooltip.js"></script>
+
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+
+<body class="bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-slate-100 transition-colors duration-200">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    // The security view (ui.securityView.enabled): every security update Renovate
+    // reported in the latest run of each repository the user can read, built by
+    // GET /api/v1/security from the project statuses the operator keeps.
+    const { useState, useEffect, useCallback } = React;
+
+    const REFRESH_INTERVAL_MS = 30000;
+
+    // GitHub's advisory database is the home of GHSA IDs; other IDs stay plain text.
+    const advisoryUrl = (id) => (id.startsWith("GHSA-") ? `https://github.com/advisories/${id}` : null);
+
+    const muted = "text-gray-400 dark:text-slate-500";
+
+    function AdvisoriesCell({ ids }) {
+      if (!ids || ids.length === 0) {
+        return (
+          <Tooltip content="Renovate names advisories in debug logs only">
+            <span tabIndex={0} className={`${muted} cursor-default`}>—</span>
+          </Tooltip>
+        );
+      }
+      return (
+        <ul className="space-y-0.5">
+          {ids.map((id) => {
+            const url = advisoryUrl(id);
+            return (
+              <li key={id} className="font-mono text-xs whitespace-nowrap">
+                {url ? (
+                  <a href={url} target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary-hover">
+                    {id}
+                  </a>
+                ) : (
+                  id
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      );
+    }
+
+    function PullRequestCell({ finding, platform, platformEndpoint }) {
+      if (!finding.prNumber) {
+        return <span className="font-medium text-amber-600 dark:text-amber-500">No PR</span>;
+      }
+      const url = window.PlatformUrls.singlePullRequestUrl(platform, platformEndpoint, finding.project, finding.prNumber);
+      const number = `#${finding.prNumber}`;
+      return (
+        <div className="flex flex-wrap items-baseline gap-x-2 min-w-0">
+          {url ? (
+            <a href={url} target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary-hover tabular-nums">
+              {number}
+            </a>
+          ) : (
+            <span className="tabular-nums">{number}</span>
+          )}
+          {finding.branchResult === "automerged" && <span className={`text-xs ${muted}`}>automerged</span>}
+          {finding.prTitle && (
+            <span className="text-xs text-gray-500 dark:text-slate-400 break-words">{finding.prTitle}</span>
+          )}
+        </div>
+      );
+    }
+
+    function FindingRow({ job, finding }) {
+      const cellClass = "px-4 py-3 text-sm align-top";
+      return (
+        <tr className="border-t border-gray-100 dark:border-slate-700/50">
+          <th scope="row" className="px-4 py-3 text-left text-sm font-medium align-top break-all">{finding.project}</th>
+          <td className={`${cellClass} font-mono`}>{finding.package}</td>
+          <td className={`${cellClass} font-mono tabular-nums text-error`}>{finding.currentVersion || "—"}</td>
+          <td className={`${cellClass} font-mono tabular-nums text-success`}>{finding.newVersion || "—"}</td>
+          <td className={cellClass}><AdvisoriesCell ids={finding.advisoryIds} /></td>
+          <td className={cellClass}>
+            <PullRequestCell finding={finding} platform={job.platform} platformEndpoint={job.platformEndpoint} />
+          </td>
+          <td className={`${cellClass} ${muted} whitespace-nowrap`}>{`${job.namespace}/${job.name}`}</td>
+        </tr>
+      );
+    }
+
+    // What the table cannot show: repositories without a report yet, capped
+    // lists and jobs whose projects did not load.
+    function Notes({ jobs }) {
+      const notes = [];
+      for (const job of jobs) {
+        const name = `${job.namespace}/${job.name}`;
+        if (job.error) {
+          notes.push(`Projects of ${name} could not be loaded.`);
+          continue;
+        }
+        if (job.projectsWithoutReport > 0) {
+          const count = job.projectsWithoutReport;
+          notes.push(
+            `${count} ${count === 1 ? "repository" : "repositories"} of ${name} ${count === 1 ? "has" : "have"} no report yet: ` +
+            "no run has finished since the security view was enabled."
+          );
+        }
+        for (const project of job.truncatedProjects || []) {
+          notes.push(`${project} lists only its first security updates; see the run's log for the rest.`);
+        }
+      }
+      if (notes.length === 0) return null;
+      return (
+        <ul aria-label="Notes" className="mb-4 space-y-1 text-sm text-gray-600 dark:text-slate-300">
+          {notes.map((note) => (
+            <li key={note} className="flex gap-2">
+              <span aria-hidden="true" className="text-amber-500">•</span>
+              {note}
+            </li>
+          ))}
+        </ul>
+      );
+    }
+
+    function App() {
+      const BASE = window.__BASE_PATH__ || "";
+      const [jobs, setJobs] = useState(null);
+      const [error, setError] = useState(null);
+      const [version, setVersion] = useState(null);
+      const [authInfo, setAuthInfo] = useState(null);
+
+      const loadSecurity = useCallback(async () => {
+        try {
+          const response = await fetch(BASE + "/api/v1/security");
+          if (response.status === 401) {
+            window.location.href = BASE + "/auth/login";
+            return;
+          }
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          setJobs(await response.json());
+          setError(null);
+        } catch (err) {
+          setError(`Failed to load the security updates: ${err.message}`);
+        }
+      }, [BASE]);
+
+      useEffect(() => {
+        fetch(BASE + "/api/v1/version")
+          .then((r) => (r.ok ? r.json() : null))
+          .then((d) => d && setVersion(d.version))
+          .catch(() => {});
+        fetch(BASE + "/api/v1/auth/status")
+          .then((r) => (r.ok ? r.json() : null))
+          .then((d) => d && setAuthInfo(d))
+          .catch(() => {});
+      }, [BASE]);
+
+      useEffect(() => {
+        loadSecurity();
+        const interval = setInterval(loadSecurity, REFRESH_INTERVAL_MS);
+        return () => clearInterval(interval);
+      }, [loadSecurity]);
+
+      const loaded = jobs !== null;
+      const rows = (jobs || []).flatMap((job) => (job.findings || []).map((finding) => ({ job, finding })));
+      const withPR = rows.filter(({ finding }) => finding.prNumber).length;
+      const repositories = new Set(rows.map(({ job, finding }) => `${job.namespace}/${job.name}/${finding.project}`)).size;
+
+      return (
+        <div className="min-h-screen flex flex-col">
+          <SiteHeader version={version} authInfo={authInfo}>
+            <StatBadge label="Updates" value={loaded ? rows.length : "—"} title="Security updates Renovate reported" />
+            <StatBadge
+              label="With PR"
+              value={loaded ? withPR : "—"}
+              valueClass="text-success"
+              title="Security updates with a pull request"
+            />
+            <StatBadge
+              label="Without PR"
+              value={loaded ? rows.length - withPR : "—"}
+              valueClass="text-amber-500"
+              borderClass="border-amber-300 dark:border-amber-600"
+              title="Security updates the latest run opened no pull request for"
+            />
+            <StatBadge
+              label="Repositories"
+              value={loaded ? repositories : "—"}
+              title="Repositories with at least one security update"
+            />
+          </SiteHeader>
+
+          <main className="flex-1 max-w-7xl mx-auto w-full px-3 sm:px-6 lg:px-8 pb-8">
+            <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+              <h1 className="text-lg font-semibold text-gray-900 dark:text-slate-100">Security updates</h1>
+              <a href={`${BASE}/`} className="text-sm text-primary hover:text-primary-hover">
+                Back to the dashboard
+              </a>
+            </div>
+
+            {error && (
+              <div role="alert" className="mb-4 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 p-4 text-red-700 dark:text-red-400 text-sm">
+                {error}
+              </div>
+            )}
+
+            {!loaded && !error && (
+              <div className="flex items-center justify-center py-16 text-gray-500 dark:text-slate-400">
+                <Spinner className="w-5 h-5 mr-2" />
+                Loading the security updates…
+              </div>
+            )}
+
+            {loaded && <Notes jobs={jobs} />}
+
+            {loaded && rows.length === 0 && (
+              <div className="text-center py-16 text-gray-400 dark:text-slate-500 text-sm">
+                No security updates.
+              </div>
+            )}
+
+            {loaded && rows.length > 0 && (
+              <div className="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-x-auto">
+                <table className="w-full" aria-label="Security updates">
+                  <thead className="bg-gray-50 dark:bg-slate-800/60 text-left text-[0.625rem] uppercase tracking-wider text-gray-500 dark:text-slate-400">
+                    <tr>
+                      <th scope="col" className="px-4 py-2 font-medium">Repository</th>
+                      <th scope="col" className="px-4 py-2 font-medium">Package</th>
+                      <th scope="col" className="px-4 py-2 font-medium">Affected</th>
+                      <th scope="col" className="px-4 py-2 font-medium">Fixed</th>
+                      <th scope="col" className="px-4 py-2 font-medium">Advisories</th>
+                      <th scope="col" className="px-4 py-2 font-medium">Pull request</th>
+                      <th scope="col" className="px-4 py-2 font-medium">Job</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map(({ job, finding }) => (
+                      <FindingRow
+                        key={`${job.namespace}/${job.name}/${finding.project}/${finding.branch}/${finding.package}/${finding.currentVersion}`}
+                        job={job}
+                        finding={finding}
+                      />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </main>
+          <Footer />
+        </div>
+      );
+    }
+
+    window.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+
+</html>

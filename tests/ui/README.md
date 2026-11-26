@@ -26,6 +26,9 @@ The mock supports the dashboard's API endpoints, but POST requests return `200`
 without changing fixture state. It is intended for layout and client-side
 behavior, not the operator's job lifecycle. Unhandled routes return a JSON 404.
 
+The mock advertises the [security view](../../docs/operations/security-view.md) and
+serves `/api/v1/security` with a fixed set of findings, so the dashboard links to `/security`.
+
 The log links on a project row work as well: `/api/v1/logs` is mocked as a real
 event stream whose entries arrive on a timer, so the page streams them in rather
 than showing a finished list.
@@ -74,6 +77,7 @@ tests/ui/
 │   ├── dashboardFixture.mjs     # API stubs + dashboard page object
 │   ├── renovateJobsFixture.mjs  # /api/v1/renovatejobs payload builders
 │   ├── logsFixture.mjs          # log-stream stub + logs page object
+│   ├── securityFixture.mjs      # /api/v1/security payloads + security page object
 │   └── renovateLogsFixture.mjs  # /api/v1/logs event-stream builders
 └── specs/
     ├── jobCardExpansion.spec.mjs
